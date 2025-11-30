@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UPI Fraud Analytics Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #020617 100%);
+            color: #e5e7eb;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .navbar {
+            background:#020617 !important;
+            border-bottom: 1px solid rgba(148,163,184,0.3);
+        }
+        .navbar-brand span {
+            font-weight: 700;
+        }
+        .page-wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .content {
+            flex: 1;
+        }
+        .card-glass {
+            border-radius: 1.2rem;
+            background: rgba(15,23,42,0.9);
+            border: 1px solid rgba(148,163,184,0.2);
+            box-shadow: 0 20px 45px rgba(15,23,42,0.8);
+        }
+        .card-kpi {
+            border-radius: 1rem;
+            background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,64,175,0.85));
+            border: 1px solid rgba(129,140,248,0.4);
+            color: #e5e7eb;
+        }
+        .card-kpi h2 {
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .kpi-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #9ca3af;
+        }
+        .kpi-chip {
+            font-size: 0.75rem;
+            border-radius: 999px;
+            padding: .25rem .6rem;
+            background: rgba(15,23,42,0.7);
+            border: 1px solid rgba(148,163,184,0.5);
+            color: #e5e7eb;
+        }
+        .chart-card {
+            border-radius: 1.1rem;
+            background: rgba(15,23,42,0.9);
+            border: 1px solid rgba(148,163,184,0.25);
+        }
+        .chart-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: #9ca3af;
+        }
+        .badge-pill {
+            border-radius: 999px;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.7rem;
+        }
+        .table {
+            color: #e5e7eb;
+            font-size: 0.86rem;
+        }
+        .table thead th {
+            background: rgba(15,23,42,0.95);
+            border-bottom: 1px solid rgba(55,65,81,0.9);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #9ca3af;
+        }
+        .table tbody tr:nth-child(even) {
+            background: rgba(15,23,42,0.7);
+        }
+        .table tbody tr:nth-child(odd) {
+            background: rgba(15,23,42,0.5);
+        }
+        .table tbody td {
+            border-color: rgba(55,65,81,0.9);
+        }
+        .pill-info {
+            font-size: 0.75rem;
+            border-radius: 999px;
+            padding: .25rem .6rem;
+            background: rgba(15,23,42,0.75);
+            color: #cbd5f5;
+            border: 1px solid rgba(148,163,184,0.4);
+        }
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: #9ca3af;
+        }
+        .footer-note {
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+        @media (max-width: 767.98px) {
+            .card-glass {
+                border-radius: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-dark navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <span>UPI Fraud Guardian</span>
+                <small class="text-secondary ms-2">Analytics</small>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="bi bi-shield-check me-1"></i>Predict Transaction</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active fw-semibold" href="/dashboard">
+                            <i class="bi bi-graph-up-arrow me-1"></i>Dashboard
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <div class="container py-4 py-md-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+                <div>
+                    <h3 class="mb-1 text-white">Fraud Analytics Dashboard</h3>
+                    <p class="section-subtitle mb-0">
+                        Monitor how the AI model is scoring UPI transactions in real time.
+                        Track suspicious patterns by location, time and risk level.
+                    </p>
+                </div>
+                {% if not empty %}
+                <div class="mt-3 mt-md-0 d-flex flex-column align-items-md-end">
+                    <span class="pill-info mb-1">
+                        <i class="bi bi-cpu me-1"></i> Model running in demo mode (synthetic data)
+                    </span>
+                    <span class="footer-note">
+                        Last refreshed: {{ recent[0].timestamp if recent and recent[0].timestamp else "N/A" }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if empty %}
+                <div class="card card-glass p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-circle p-2">
+                                <i class="bi bi-info-lg"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h5 class="mb-1 text-white">No transactions logged yet</h5>
+                            <p class="mb-0 section-subtitle">
+                                Go to <a href="/" class="link-light text-decoration-underline">Predict Transaction</a>,
+                                run a few predictions and they will start appearing here automatically.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+
+            <!-- KPI CARDS -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card card-kpi p-3 h-100">
+                        <div class="d-flex justify-content-between">
+                            <span class="kpi-label">Total Transactions Scored</span>
+                            <span class="kpi-chip"><i class="bi bi-database-fill-down me-1"></i>Live Log</span>
+                        </div>
+                        <div class="mt-2 d-flex align-items-end justify-content-between">
+                            <h2 class="mb-0">{{ total_txn }}</h2>
+                        </div>
+                        <div class="mt-2 small text-slate-200">
+                            All UPI transactions that have passed through the fraud engine.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card card-kpi p-3 h-100">
+                        <div class="d-flex justify-content-between">
+                            <span class="kpi-label">Suspicious / Fraudulent</span>
+                            <span class="kpi-chip bg-opacity-10">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>High Risk
+                            </span>
+                        </div>
+                        <div class="mt-2 d-flex align-items-end justify-content-between">
+                            <h2 class="mb-0 text-danger">{{ fraud_txn }}</h2>
+                        </div>
+                        <div class="mt-2 small">
+                            Includes both <span class="text-warning fw-semibold">FLAG</span> and
+                            <span class="text-danger fw-semibold">BLOCK</span> decisions.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card card-kpi p-3 h-100">
+                        <div class="d-flex justify-content-between">
+                            <span class="kpi-label">Fraud Rate</span>
+                            <span class="kpi-chip">
+                                <i class="bi bi-activity me-1"></i>Risk Density
+                            </span>
+                        </div>
+                        <div class="mt-2 d-flex align-items-end justify-content-between">
+                            <h2 class="mb-0">{{ fraud_rate }}%</h2>
+                        </div>
+                        <div class="mt-2 small">
+                            Percentage of scored transactions that were marked as suspicious.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="card chart-card p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <div class="chart-title">Fraud Hotspots by City (Top 5)</div>
+                                <div class="section-subtitle mb-0">
+                                    Cities with the highest count of suspicious transactions.
+                                </div>
+                            </div>
+                            <span class="badge-pill bg-primary bg-opacity-25 text-primary">
+                                <i class="bi bi-geo-alt-fill me-1"></i>Location Risk
+                            </span>
+                        </div>
+                        <canvas id="cityChart" height="170"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card chart-card p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <div class="chart-title">Fraud by Hour of Day</div>
+                                <div class="section-subtitle mb-0">
+                                    See when most high-risk transactions are happening.
+                                </div>
+                            </div>
+                            <span class="badge-pill bg-warning bg-opacity-25 text-warning">
+                                <i class="bi bi-clock-history me-1"></i>Time Risk
+                            </span>
+                        </div>
+                        <canvas id="hourChart" height="170"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RECENT SUSPICIOUS -->
+            <div class="card card-glass mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="chart-title">Recent Suspicious / Blocked Transactions</div>
+                            <div class="section-subtitle mb-0">
+                                Last few transactions that were <span class="text-warning">FLAGGED</span> or
+                                <span class="text-danger">BLOCKED</span> by the engine.
+                            </div>
+                        </div>
+                        <span class="pill-info d-none d-md-inline-flex">
+                            <i class="bi bi-filter-circle me-1"></i>
+                            Showing latest {{ recent|length }} high-risk events
+                        </span>
+                    </div>
+
+                    {% if recent|length == 0 %}
+                        <p class="mt-3 section-subtitle">
+                            Great news! No suspicious transactions found yet in the current log.
+                        </p>
+                    {% else %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>City</th>
+                                <th>Type</th>
+                                <th>Amount (₹)</th>
+                                <th>Hour</th>
+                                <th>Risk Score</th>
+                                <th>Decision</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for row in recent %}
+                                <tr>
+                                    <td>{{ row.timestamp }}</td>
+                                    <td>{{ row.location }}</td>
+                                    <td>{{ row.txn_type }}</td>
+                                    <td>{{ row.amount }}</td>
+                                    <td>{{ row.hour_of_day }}</td>
+                                    <td>
+                                        <span class="badge-pill bg-secondary bg-opacity-25 text-light">
+                                            {{ row.risk_score }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if row.decision == 'BLOCK' %}
+                                            <span class="badge badge-pill bg-danger">
+                                                <i class="bi bi-shield-x me-1"></i>BLOCK
+                                            </span>
+                                        {% elif row.decision == 'FLAG' %}
+                                            <span class="badge badge-pill bg-warning text-dark">
+                                                <i class="bi bi-flag-fill me-1"></i>FLAG
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-pill bg-success">
+                                                <i class="bi bi-check2-circle me-1"></i>ALLOW
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <p class="footer-note mt-3">
+                This dashboard is built on synthetic UPI-like transaction data for academic demonstration.
+                In a real deployment, this would be wired to a streaming system (Kafka / message queues) and
+                monitored by a dedicated fraud operations team.
+            </p>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+{% if not empty %}
+<script>
+    const cityLabels = {{ city_labels | tojson }};
+    const cityData   = {{ city_data | tojson }};
+    const hourLabels = {{ hour_labels | tojson }};
+    const hourData   = {{ hour_data | tojson }};
+
+    // City chart
+    const ctxCity = document.getElementById('cityChart').getContext('2d');
+    new Chart(ctxCity, {
+        type: 'bar',
+        data: {
+            labels: cityLabels,
+            datasets: [{
+                label: 'Fraud Count',
+                data: cityData,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ' ' + ctx.parsed.y + ' suspicious txns';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#e5e7eb' },
+                    grid: { color: 'rgba(75,85,99,0.5)' }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#e5e7eb' },
+                    grid: { color: 'rgba(75,85,99,0.5)' }
+                }
+            }
+        }
+    });
+
+    // Hour chart
+    const ctxHour = document.getElementById('hourChart').getContext('2d');
+    new Chart(ctxHour, {
+        type: 'line',
+        data: {
+            labels: hourLabels,
+            datasets: [{
+                label: 'Fraud Count',
+                data: hourData,
+                tension: 0.35,
+                pointRadius: 3,
+                borderWidth: 2,
+                fill: false
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ' ' + ctx.parsed.y + ' suspicious txns';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Hour of Day (0–23)', color: '#e5e7eb' },
+                    ticks: { color: '#e5e7eb' },
+                    grid: { color: 'rgba(55,65,81,0.5)' }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#e5e7eb' },
+                    grid: { color: 'rgba(55,65,81,0.5)' }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+
+</body>
+</html>
+
